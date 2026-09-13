@@ -24,17 +24,18 @@ Steps:
 
 Expected: The bottom glass dock remains visible and music results for "Arijit Singh" appear above it.
 
-## Test 3 - Open a mobile song player
+## Test 3 - Use mobile artwork player controls
 Viewport: mobile
-Covers: mobile result selection, mobile mini-player, mobile YouTube player overlay
-Description: Verifies tapping a result on mobile opens the playback experience without moving search controls to the top.
+Covers: mobile result selection, single active playback stream, artwork-first full-screen player, previous/play-pause/next controls, compact official YouTube embed, mobile mini-player
+Description: Verifies tapping a result opens the artwork player with screenshot-style transport controls while keeping only one playback stream active on mobile.
 
 Steps:
 1. Search for "Punjabi songs latest" from the bottom dock
 2. Tap the first visible song card
-3. Close the full player overlay
+3. Tap the large play-pause control, then tap next
+4. Close the full player overlay
 
-Expected: The player overlay opens, then closes successfully, and the mini-player remains above the bottom dock.
+Expected: The player shows large song artwork, title and artist, previous/play-pause/next controls and one smaller visible official YouTube player; audio does not play twice, and closing it leaves the mini-player above the bottom dock.
 
 ## Test 4 - Show a clean search failure
 Viewport: desktop
