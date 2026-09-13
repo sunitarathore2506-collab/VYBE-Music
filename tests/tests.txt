@@ -2,7 +2,7 @@
 
 ## Test 1 - Search and play music on desktop [sanity]
 Viewport: desktop
-Covers: restored desktop layout, music search, backend /api/search, result cards, right-side YouTube player
+Covers: restored desktop layout, music search, backend /api/search, embeddable/syndicated result filtering, result cards, right-side YouTube player
 Description: Verifies the classic VYBE layout can search for an artist and play a result in the desktop player.
 
 Steps:
