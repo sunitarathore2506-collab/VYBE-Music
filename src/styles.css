@@ -88,6 +88,23 @@ button { cursor: pointer; }
 .wide { width: 100%; }
 .mobileVideo { aspect-ratio: 16/9; margin-top: 34px; border-radius: 20px; overflow: hidden; background: #000; }
 .mobileVideo iframe { width: 100%; height: 100%; border: 0; }
+.player-open { overflow: hidden; }
+.playerOverlay { padding: 10px; background: radial-gradient(circle at 50% 8%,rgba(98,35,58,.3),transparent 34%),rgba(2,1,2,.96); }
+.mobilePlayerScreen { width: min(520px,100%); max-height: calc(100dvh - 20px); overflow: auto; border-radius: 30px; padding: 14px 14px 20px; position: relative; background: linear-gradient(180deg,rgba(20,8,13,.98),rgba(3,2,3,.99)); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 30px 90px rgba(0,0,0,.72); }
+.playerClose { z-index: 3; background: rgba(8,5,6,.62); backdrop-filter: blur(14px); }
+.artworkStage { width: 100%; aspect-ratio: 4/5; max-height: 58dvh; border-radius: 24px; overflow: hidden; position: relative; background: #0c080a; box-shadow: 0 22px 60px rgba(0,0,0,.45); }
+.artworkStage::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg,transparent 58%,rgba(3,2,3,.22) 78%,rgba(3,2,3,.72)); pointer-events: none; }
+.artworkStage img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.playerInfo { padding: 18px 4px 4px; }
+.playerInfo h3 { margin: 0; font-size: 24px; line-height: 1.18; letter-spacing: -.02em; }
+.playerInfo p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
+.transport { display: grid; grid-template-columns: 1fr 92px 1fr; align-items: center; gap: 14px; padding: 22px 18px 10px; }
+.transport button { border: 0; color: #fff; background: transparent; display: grid; place-items: center; }
+.transportSide { font-size: 34px; min-height: 64px; opacity: .96; }
+.transportPlay { width: 88px; height: 88px; justify-self: center; border-radius: 50% !important; font-size: 36px; background: linear-gradient(145deg,#6b2a43,#a14e6d) !important; box-shadow: 0 16px 44px rgba(98,35,58,.34); }
+.transport button:active { transform: scale(.94); }
+.compactVideo { margin-top: 14px; border-radius: 16px; max-height: 180px; border: 1px solid rgba(255,255,255,.08); }
+.playerHint { margin-top: 9px; color: #8f7b84; font-size: 10px; text-align: center; letter-spacing: .08em; text-transform: uppercase; }
 @media (max-width:1100px) {
   .appShell { grid-template-columns: 84px minmax(0,1fr) 320px; }
   .brand > div:last-child,.sideNav span,.sideNote { display: none; }
@@ -128,6 +145,10 @@ button { cursor: pointer; }
   .mobileMeta strong { font-size: 13px; }
   .mobileMeta small { color: var(--muted); margin-top: 4px; }
   .mobilePlay { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(145deg,#6b2a43,#a14e6d); }
+  .playerOverlay { align-items: stretch; }
+  .mobilePlayerScreen { width: 100%; max-height: calc(100dvh - 20px); align-self: center; }
+  .artworkStage { max-height: 56dvh; }
+  .compactVideo { max-height: 118px; }
 }
 @media (max-width:430px) {
   .results { grid-template-columns: 1fr; }
