@@ -12,7 +12,11 @@ type SearchItem = {
     };
   };
 };
-type VideoItem = { id?: string; contentDetails?: { duration?: string } };
+type VideoItem = {
+  id?: string;
+  contentDetails?: { duration?: string };
+  status?: { embeddable?: boolean };
+};
 
 function durationSeconds(value: string) {
   const match = value.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -32,7 +36,7 @@ export const handler = router({
       if (!q) return error('Search query required', 400);
       try {
         const key = await secrets.readSecret('YOUTUBE_API_KEY');
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&maxResults=20&q=${encodeURIComponent(`${q} music -shorts`)}&key=${encodeURIComponent(key)}`;
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=10&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&maxResults=25&q=${encodeURIComponent(`${q} music -shorts -#shorts`)}&key=${encodeURIComponent(key)}`;
         const searchResponse = await fetch(searchUrl);
         if (!searchResponse.ok)
           throw new Error(`YouTube search failed: ${searchResponse.status}`);
@@ -43,25 +47,28 @@ export const handler = router({
           .map(item => item.id?.videoId)
           .filter((id): id is string => Boolean(id));
         if (!ids.length) return json({ songs: [] });
-        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${encodeURIComponent(ids.join(','))}&key=${encodeURIComponent(key)}`;
+        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${encodeURIComponent(ids.join(','))}&key=${encodeURIComponent(key)}`;
         const detailsResponse = await fetch(detailsUrl);
         if (!detailsResponse.ok)
           throw new Error(`YouTube details failed: ${detailsResponse.status}`);
         const detailsData = (await detailsResponse.json()) as {
           items?: VideoItem[];
         };
-        const durations = new Map(
-          (detailsData.items ?? []).map(item => [
-            item.id ?? '',
-            durationSeconds(item.contentDetails?.duration ?? ''),
-          ])
+        const videoDetails = new Map(
+          (detailsData.items ?? []).map(item => [item.id ?? '', item])
         );
         const songs = (searchData.items ?? [])
           .map(item => {
             const id = item.id?.videoId ?? '';
             const title = item.snippet?.title ?? '';
-            const duration = durations.get(id) ?? 0;
-            if (!id || duration < 75 || /#shorts|\bshorts\b/i.test(title))
+            const details = videoDetails.get(id);
+            const duration = durationSeconds(details?.contentDetails?.duration ?? '');
+            if (
+              !id ||
+              details?.status?.embeddable === false ||
+              duration < 75 ||
+              /#shorts|\bshorts\b/i.test(title)
+            )
               return null;
             const thumbnails = item.snippet?.thumbnails;
             return {
