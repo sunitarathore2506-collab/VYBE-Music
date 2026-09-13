@@ -1,0 +1,59 @@
+# Tests
+
+## Test 1 - Search and play music on desktop [sanity]
+Viewport: desktop
+Covers: restored desktop layout, music search, backend /api/search, result cards, right-side YouTube player
+Description: Verifies the classic VYBE layout can search for an artist and play a result in the desktop player.
+
+Steps:
+1. Search for "Karan Aujla" using the top search bar
+2. Click the first visible song card
+3. Observe the right-side player
+
+Expected: Music results appear and the selected song title and embedded YouTube player are visible in the right-side player panel.
+
+## Test 2 - Search from the bottom glass dock on mobile
+Viewport: mobile
+Covers: mobile bottom navigation, bottom search field, backend /api/search, responsive results
+Description: Verifies mobile search controls stay at the bottom and can search music.
+
+Steps:
+1. Enter "Arijit Singh" in the bottom search field
+2. Tap the search icon in the bottom dock
+3. Review the results
+
+Expected: The bottom glass dock remains visible and music results for "Arijit Singh" appear above it.
+
+## Test 3 - Open a mobile song player
+Viewport: mobile
+Covers: mobile result selection, mobile mini-player, mobile YouTube player overlay
+Description: Verifies tapping a result on mobile opens the playback experience without moving search controls to the top.
+
+Steps:
+1. Search for "Punjabi songs latest" from the bottom dock
+2. Tap the first visible song card
+3. Close the full player overlay
+
+Expected: The player overlay opens, then closes successfully, and the mini-player remains above the bottom dock.
+
+## Test 4 - Show a clean search failure
+Viewport: desktop
+Covers: backend failure handling, user-visible error state, API credential privacy
+Description: Verifies a failed search shows a clean message without exposing API credentials.
+
+QA Faults:
+```json
+[
+  {
+    "method": "GET",
+    "path": "/api/search",
+    "status": 500,
+    "body_json": { "error": "simulated_failure" }
+  }
+]
+```
+
+Steps:
+1. Search for "English pop"
+
+Expected: A visible "Couldn’t search" message appears and no API key or API setup form is shown.
