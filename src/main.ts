@@ -56,7 +56,7 @@ app.innerHTML = `
   </main>
 
   <aside class='player glass'>
-    <div class='playerHead'><span>NOW PLAYING</span><span>YOUTUBE</span></div>
+    <div class='playerHead'><span>NOW PLAYING</span></div>
     <div class='videoWrap' id='videoWrap'><div class='playerEmpty'>Choose a result to play</div></div>
     <div class='nowMeta'><h2 id='nowTitle'>Nothing playing</h2><p id='nowChannel'>Search for a song and tap it.</p></div>
     <div class='policy soft'><b>Playback:</b> Official YouTube embed. VYBE does not download, extract, or host audio.</div>
@@ -73,7 +73,7 @@ app.innerHTML = `
   <img id='miniThumb' alt='' /><span class='mobileMeta'><strong id='miniTitle'></strong><small id='miniChannel'></small></span><span class='mobilePlay'>▶</span>
 </button>
 
-<div class='overlay hidden' id='mobileOverlay'><div class='mobileModal glass'><button class='close' id='closeMobilePlayer' type='button'>×</button><div class='mobileVideo'><iframe id='mobileFrame' title='YouTube player' allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe></div><h3 id='mobileNowTitle'></h3><p id='mobileNowChannel'></p></div></div>
+<div class='overlay hidden playerOverlay' id='mobileOverlay'><div class='mobileModal mobilePlayerScreen'><button class='close playerClose' id='closeMobilePlayer' type='button' aria-label='Close player'>×</button><div class='artworkStage'><img id='mobileArtwork' alt='Song artwork' /></div><div class='playerInfo'><h3 id='mobileNowTitle'></h3><p id='mobileNowChannel'></p></div><div class='transport'><button id='prevTrack' class='transportSide' type='button' aria-label='Previous song'>◀◀</button><button id='togglePlayback' class='transportPlay' type='button' aria-label='Play or pause'>❚❚</button><button id='nextTrack' class='transportSide' type='button' aria-label='Next song'>▶▶</button></div><div class='mobileVideo compactVideo'><iframe id='mobileFrame' title='Official YouTube player' allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe></div><div class='playerHint'>Official YouTube playback</div></div></div>
 
 <div class='overlay hidden' id='installOverlay'><div class='installModal glass'><button class='close' id='closeInstall' type='button'>×</button><div class='installLogo'>V</div><span class='eyebrow'>INSTALL VYBE</span><h2>Add VYBE to your device</h2><p>Android / PC: tap <b>Install now</b> when available. iPhone: Safari → Share → <b>Add to Home Screen</b>.</p><button class='btn primary wide' id='installNow' type='button'>Install now</button></div></div>
 `;
@@ -92,8 +92,12 @@ const miniTitle = document.querySelector<HTMLElement>('#miniTitle')!;
 const miniChannel = document.querySelector<HTMLElement>('#miniChannel')!;
 const mobileOverlay = document.querySelector<HTMLElement>('#mobileOverlay')!;
 const mobileFrame = document.querySelector<HTMLIFrameElement>('#mobileFrame')!;
+const mobileArtwork = document.querySelector<HTMLImageElement>('#mobileArtwork')!;
 const mobileNowTitle = document.querySelector<HTMLElement>('#mobileNowTitle')!;
 const mobileNowChannel = document.querySelector<HTMLElement>('#mobileNowChannel')!;
+const prevTrack = document.querySelector<HTMLButtonElement>('#prevTrack')!;
+const togglePlayback = document.querySelector<HTMLButtonElement>('#togglePlayback')!;
+const nextTrack = document.querySelector<HTMLButtonElement>('#nextTrack')!;
 const installOverlay = document.querySelector<HTMLElement>('#installOverlay')!;
 const installNow = document.querySelector<HTMLButtonElement>('#installNow')!;
 const installTop = document.querySelector<HTMLButtonElement>('#installTop')!;
@@ -101,6 +105,9 @@ const installNav = document.querySelector<HTMLButtonElement>('#installNav')!;
 const mobileInstall = document.querySelector<HTMLButtonElement>('#mobileInstall')!;
 let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
 let currentSong: Song | null = null;
+let currentSongs: Song[] = [];
+let currentIndex = -1;
+let mobileIsPlaying = true;
 
 function syncQueries(value: string) {
   desktopQuery.value = value;
@@ -108,6 +115,7 @@ function syncQueries(value: string) {
 }
 
 function renderSongs(songs: Song[]) {
+  currentSongs = songs;
   results.replaceChildren();
   quotaText.textContent = songs.length ? `${songs.length} music results` : 'No proper songs found';
   if (!songs.length) {
@@ -117,7 +125,7 @@ function renderSongs(songs: Song[]) {
     results.append(empty);
     return;
   }
-  songs.forEach(song => {
+  songs.forEach((song, index) => {
     const card = document.createElement('article');
     card.className = 'card glass';
     const thumb = document.createElement('div');
@@ -138,7 +146,7 @@ function renderSongs(songs: Song[]) {
     channel.textContent = song.channel;
     meta.append(title, channel);
     card.append(thumb, meta);
-    card.addEventListener('click', () => playSong(song));
+    card.addEventListener('click', () => playSong(song, index));
     results.append(card);
   });
 }
@@ -151,7 +159,7 @@ async function searchSongs(query: string) {
   quotaText.textContent = 'Searching…';
   results.innerHTML = `<div class='empty glass'><b>Finding music…</b>Please wait a moment.</div>`;
   try {
-    const response = await api.get('/api/search', { q: term });
+    const response = await api.get(`/api/search?q=${encodeURIComponent(term)}`);
     renderSongs((response.data?.songs ?? []) as Song[]);
   } catch {
     quotaText.textContent = 'Error';
@@ -159,30 +167,60 @@ async function searchSongs(query: string) {
   }
 }
 
-function playSong(song: Song) {
+function playSong(song: Song, index = currentSongs.findIndex(item => item.id === song.id)) {
   currentSong = song;
-  const src = `https://www.youtube.com/embed/${song.id}?autoplay=1&playsinline=1&rel=0`;
-  videoWrap.innerHTML = `<iframe src='${src}' title='YouTube video player' allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe>`;
+  currentIndex = index;
   nowTitle.textContent = song.title;
   nowChannel.textContent = song.channel;
   miniThumb.src = song.thumbnail;
   miniTitle.textContent = song.title;
   miniChannel.textContent = song.channel;
   mobilePlayer.classList.remove('hidden');
-  if (window.innerWidth <= 760) openMobilePlayer();
+  if (window.innerWidth <= 760) {
+    videoWrap.innerHTML = `<div class='playerEmpty'>Playing on mobile</div>`;
+    openMobilePlayer();
+    return;
+  }
+  mobileFrame.src = '';
+  mobileOverlay.classList.add('hidden');
+  document.body.classList.remove('player-open');
+  const src = `https://www.youtube.com/embed/${song.id}?autoplay=1&playsinline=1&rel=0`;
+  videoWrap.innerHTML = `<iframe src='${src}' title='YouTube video player' allow='autoplay; encrypted-media; picture-in-picture' allowfullscreen></iframe>`;
 }
 
 function openMobilePlayer() {
   if (!currentSong) return;
-  mobileFrame.src = `https://www.youtube.com/embed/${currentSong.id}?autoplay=1&playsinline=1&rel=0`;
+  mobileArtwork.src = currentSong.thumbnail;
+  mobileFrame.src = `https://www.youtube.com/embed/${currentSong.id}?autoplay=1&playsinline=1&rel=0&enablejsapi=1`;
   mobileNowTitle.textContent = currentSong.title;
   mobileNowChannel.textContent = currentSong.channel;
+  mobileIsPlaying = true;
+  togglePlayback.textContent = '❚❚';
   mobileOverlay.classList.remove('hidden');
+  document.body.classList.add('player-open');
+}
+
+function sendPlayerCommand(command: 'playVideo' | 'pauseVideo') {
+  mobileFrame.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: command, args: [] }), '*');
+}
+
+function toggleMobilePlayback() {
+  mobileIsPlaying = !mobileIsPlaying;
+  sendPlayerCommand(mobileIsPlaying ? 'playVideo' : 'pauseVideo');
+  togglePlayback.textContent = mobileIsPlaying ? '❚❚' : '▶';
+}
+
+function moveTrack(direction: number) {
+  if (!currentSongs.length) return;
+  const base = currentIndex >= 0 ? currentIndex : 0;
+  const nextIndex = (base + direction + currentSongs.length) % currentSongs.length;
+  playSong(currentSongs[nextIndex], nextIndex);
 }
 
 function closeMobilePlayer() {
   mobileOverlay.classList.add('hidden');
   mobileFrame.src = '';
+  document.body.classList.remove('player-open');
 }
 
 function resetHome() {
@@ -245,6 +283,9 @@ installNow.addEventListener('click', async () => {
   installOverlay.classList.add('hidden');
 });
 mobilePlayer.addEventListener('click', openMobilePlayer);
+prevTrack.addEventListener('click', () => moveTrack(-1));
+togglePlayback.addEventListener('click', toggleMobilePlayback);
+nextTrack.addEventListener('click', () => moveTrack(1));
 document.querySelector<HTMLButtonElement>('#closeMobilePlayer')!.addEventListener('click', closeMobilePlayer);
 mobileOverlay.addEventListener('click', event => { if (event.target === mobileOverlay) closeMobilePlayer(); });
 
